@@ -1,6 +1,9 @@
-require('dotenv').config();
-const { Client, IntentsBitField } = require('discord.js');
-const fs = require('fs');
+import quizQuestions from "./questions.js";
+import { config } from 'dotenv';
+import { Client, IntentsBitField } from 'discord.js';
+import fs from 'fs';
+
+config(); // Load environment variables
 
 const client = new Client({
   intents: [
@@ -22,28 +25,7 @@ if (fs.existsSync(leaderboardFile)) {
   leaderboard = JSON.parse(fs.readFileSync(leaderboardFile, 'utf-8'));
 }
 
-const quizQuestions = [
-  {
-    question: "What is the capital of France?",
-    options: ["1. Paris", "2. Berlin", "3. Madrid", "4. Rome"],
-    answer: "1"
-  },
-  {
-    question: "What is the capital of Germany?",
-    options: ["1. Paris", "2. Berlin", "3. Madrid", "4. Rome"],
-    answer: "2"
-  },
-  {
-    question: "What is the capital of Spain?",
-    options: ["1. Paris", "2. Berlin", "3. Madrid", "4. Rome"],
-    answer: "3"
-  },
-  {
-    question: "What is the capital of Italy?",
-    options: ["1. Paris", "2. Berlin", "3. Madrid", "4. Rome"],
-    answer: "4"
-  }
-];
+
 
 function getRandomQuiz() {
   const randomIndex = Math.floor(Math.random() * quizQuestions.length);
@@ -77,7 +59,7 @@ client.on('messageCreate', (message) => {
   }
 
   m++;
-  if (m % 3 === 0) {
+  if (m % 30 === 0) {
     if (isQuizActive) {
       message.channel.send("A quiz is already active!");
       return;
