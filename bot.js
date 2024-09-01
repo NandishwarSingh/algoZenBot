@@ -14,8 +14,11 @@ const client = new Client({
   ],
 });
 
-let m = 0;
+let m = 25;
 let isQuizActive = false;
+
+// Define the specific channel ID for the quiz
+const quizChannelId = process.env.TOKEN2;
 
 // Load leaderboard from JSON file
 let leaderboard = {};
@@ -24,8 +27,6 @@ const leaderboardFile = 'leaderboard.json';
 if (fs.existsSync(leaderboardFile)) {
   leaderboard = JSON.parse(fs.readFileSync(leaderboardFile, 'utf-8'));
 }
-
-
 
 function getRandomQuiz() {
   const randomIndex = Math.floor(Math.random() * quizQuestions.length);
@@ -43,6 +44,9 @@ client.on('ready', (c) => {
 client.on('messageCreate', (message) => {
   if (message.author.bot) return;
 
+  // Check if the message is in the desired channel
+  if (message.channel.id !== quizChannelId) return;
+
   if (message.content === "!leaderboard") {
     // Generate and display leaderboard
     const sortedLeaderboard = Object.entries(leaderboard)
@@ -59,6 +63,7 @@ client.on('messageCreate', (message) => {
   }
 
   m++;
+  console.log(m);
   if (m % 30 === 0) {
     if (isQuizActive) {
       message.channel.send("A quiz is already active!");
