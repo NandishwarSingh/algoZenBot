@@ -14,7 +14,7 @@ const client = new Client({
   ],
 });
 
-let m = 25;
+let messageCount = 0;
 let isQuizActive = false;
 
 // Define the specific channel ID for the quiz
@@ -37,7 +37,7 @@ function saveLeaderboard() {
   fs.writeFileSync(leaderboardFile, JSON.stringify(leaderboard, null, 2), 'utf-8');
 }
 
-client.on('ready', (c) => {
+client.on('ready', () => {
   console.log("Bot is Online Baby!");
 });
 
@@ -62,9 +62,10 @@ client.on('messageCreate', (message) => {
     return;
   }
 
-  m++;
-  console.log(m);
-  if (m % 30 === 0) {
+  messageCount++;
+  console.log(messageCount);
+
+  if (messageCount % 10 === 0) {
     if (isQuizActive) {
       message.channel.send("A quiz is already active!");
       return;
@@ -77,13 +78,13 @@ client.on('messageCreate', (message) => {
     message.channel.send("Type the number of the correct answer.");
 
     const filter = (response) => {
-      return response.author.id === message.author.id;
+      return !response.author.bot && response.channel.id === quizChannelId;
     };
 
     const collector = message.channel.createMessageCollector({ filter, time: 15000 }); // 15 seconds to answer
 
     collector.on('collect', (response) => {
-      if (response.content === quiz.answer) {
+      if (response.content === quiz.answer.toString()) {
         // Update leaderboard with the correct answer
         const username = response.author.username;
         if (!leaderboard[username]) {
