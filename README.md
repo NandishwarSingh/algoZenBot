@@ -2,10 +2,12 @@ AlgoZenBot is a fun and interactive bot designed for engaging users in a quiz ga
 
 Users can view the leaderboard by typing  !leaderboard  in the designated quiz channel.
 
+Update:- Shop has been added and now users can purchase a special role with points they have collected by answering the quiz
+
 Note :-
 
 1. A Quiz Spawns After every 30 messages in the ⁠💬general-chat
 
-2. Commands and Bot messages are not counted
+2.Bot messages are not counted
 
 3. New Features Coming Soon !
