@@ -1,7 +1,9 @@
 import quizQuestions from "./questions.js";
+import items from "./shopItems.js";
 import { config } from 'dotenv';
 import { Client, IntentsBitField } from 'discord.js';
 import fs from 'fs';
+import { StringSelectMenuBuilder, StringSelectMenuOptionBuilder, ActionRowBuilder } from "discord.js";
 
 config(); // Load environment variables
 
@@ -14,7 +16,8 @@ const client = new Client({
   ],
 });
 
-let messageCount = 0;
+let f = 20;
+let messageCount = 10;
 let isQuizActive = false;
 
 // Define the specific channel ID for the quiz
@@ -41,12 +44,31 @@ client.on('ready', () => {
   console.log("Bot is Online Baby!");
 });
 
-client.on('messageCreate', (message) => {
+client.on('messageCreate', async (message) => {
   if (message.author.bot) return;
 
   // Check if the message is in the desired channel
-  if (message.channel.id !== quizChannelId) return;
-
+  if (message.content === "!shop") {
+    const selectMenu = new StringSelectMenuBuilder()
+      .setCustomId('select-item')
+      .setPlaceholder('Purchase an item')
+      .setMinValues(1)
+      .setMaxValues(1)
+      .addOptions(items.map((item) => 
+        new StringSelectMenuOptionBuilder()
+          .setLabel(`${item.label} - ${item.price} points`) // Include price in the label
+          .setDescription(item.description)
+          .setValue(item.value)
+      ));
+  
+    const actionRow = new ActionRowBuilder().addComponents(selectMenu);
+  
+    await message.reply({
+      content: "Select an item from the shop:",
+      components: [actionRow],
+    });
+  }
+  
   if (message.content === "!leaderboard") {
     // Generate and display leaderboard
     const sortedLeaderboard = Object.entries(leaderboard)
@@ -62,50 +84,91 @@ client.on('messageCreate', (message) => {
     return;
   }
 
-  messageCount++;
-  console.log(messageCount);
+  // Only increment the message count if the message is sent in the quizChannelId
+  if (message.channel.id === quizChannelId) {
+    messageCount++;
+    console.log(messageCount);
 
-  if (messageCount % 10 === 0) {
-    if (isQuizActive) {
-      message.channel.send("A quiz is already active!");
-      return;
-    }
+    if (messageCount % f === 0) {
+      if (isQuizActive) {
+        message.channel.send("A quiz is already active!");
+        return;
+      }
 
-    isQuizActive = true;
-    const quiz = getRandomQuiz();
-    message.channel.send("Quiz Time! 🎉");
-    message.channel.send(`${quiz.question}\n${quiz.options.join("\n")}`);
-    message.channel.send("Type the number of the correct answer.");
+      isQuizActive = true;
+      const quiz = getRandomQuiz();
+      message.channel.send(`Quiz Time! 🎉\n${quiz.question}\n${quiz.options.join("\n")}\nType the number of the correct answer.`);
+    
+      const filter = (response) => {
+        return !response.author.bot && response.channel.id === quizChannelId;
+      };
 
-    const filter = (response) => {
-      return !response.author.bot && response.channel.id === quizChannelId;
-    };
+      const collector = message.channel.createMessageCollector({ filter, time: 30000 }); // 30 seconds to answer
 
-    const collector = message.channel.createMessageCollector({ filter, time: 15000 }); // 15 seconds to answer
+      collector.on('collect', (response) => {
+        if (response.content === quiz.answer.toString()) {
+          // Update leaderboard with the correct answer
+          const username = response.author.username;
+          if (!leaderboard[username]) {
+            leaderboard[username] = 0;
+          }
+          leaderboard[username] += 1; // Increment points
+          saveLeaderboard(); // Save the updated leaderboard
 
-    collector.on('collect', (response) => {
-      if (response.content === quiz.answer.toString()) {
-        // Update leaderboard with the correct answer
-        const username = response.author.username;
-        if (!leaderboard[username]) {
-          leaderboard[username] = 0;
+          message.channel.send(`🎉 Correct! The answer is ${quiz.options[quiz.answer - 1]}. Congratulations ${username}!`);
+          collector.stop();
+        } else {
+          message.channel.send("❌ Incorrect. Try again!");
         }
-        leaderboard[username] += 1; // Increment points
-        saveLeaderboard(); // Save the updated leaderboard
+      });
 
-        message.channel.send(`🎉 Correct! The answer is ${quiz.options[quiz.answer - 1]}. Congratulations ${username}!`);
-        collector.stop();
+      collector.on('end', (collected) => {
+        if (!collected.size) {
+          message.channel.send("⏰ Time's up! The correct answer was " + quiz.options[quiz.answer - 1] + ".");
+        }
+        isQuizActive = false;
+      });
+    }
+  }
+});
+
+client.on('interactionCreate', async (interaction) => {
+  if (!interaction.isStringSelectMenu()) return;
+
+  if (interaction.customId === 'select-item') {
+    const selectedItemValue = interaction.values[0];
+    const selectedItem = items.find(item => item.value === selectedItemValue);
+    const username = interaction.user.username;
+
+    console.log(`Selected item: ${selectedItem.label}`);
+    console.log(`Item price: ${selectedItem.price}`);
+    console.log(`User: ${username}`);
+    console.log(`User points: ${leaderboard[username]}`);
+
+    if (leaderboard[username] && leaderboard[username] >= selectedItem.price) {
+      leaderboard[username] -= selectedItem.price; // Deduct the item price from user's points
+      saveLeaderboard(); // Save the updated leaderboard
+
+      // Assign the role if the item has an associated roleId
+      if (selectedItem.roleId) {
+        const guild = interaction.guild;
+        const member = guild.members.cache.get(interaction.user.id);
+        const role = guild.roles.cache.get(selectedItem.roleId);
+
+        if (role && member) {
+          await member.roles.add(role); // Assign the role to the user
+          await interaction.reply(`✅ You have purchased **${selectedItem.label}** for ${selectedItem.price} points. You have been assigned the role **${role.name}**. Your new balance is ${leaderboard[username]} points.`);
+        } else {
+          await interaction.reply("❌ There was an error assigning the role. Please contact an administrator.");
+        }
       } else {
-        message.channel.send("❌ Incorrect. Try again!");
+        await interaction.reply(`✅ You have purchased **${selectedItem.label}** for ${selectedItem.price} points. Your new balance is ${leaderboard[username]} points.`);
       }
-    });
-
-    collector.on('end', (collected) => {
-      if (!collected.size) {
-        message.channel.send("⏰ Time's up! The correct answer was " + quiz.options[quiz.answer - 1] + ".");
-      }
-      isQuizActive = false;
-    });
+      
+    } else {
+      const userPoints = leaderboard[username] || 0;
+      await interaction.reply(`❌ You don't have enough points to purchase **${selectedItem.label}**. You need ${selectedItem.price - userPoints} more points.`);
+    }
   }
 });
 
