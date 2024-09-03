@@ -47,7 +47,7 @@ client.on('ready', () => {
 client.on('messageCreate', async (message) => {
   if (message.author.bot) return;
 
-  // Check if the message is in the desired channel
+ 
   if (message.content === "!shop") {
     const selectMenu = new StringSelectMenuBuilder()
       .setCustomId('select-item')
@@ -56,7 +56,7 @@ client.on('messageCreate', async (message) => {
       .setMaxValues(1)
       .addOptions(items.map((item) => 
         new StringSelectMenuOptionBuilder()
-          .setLabel(`${item.label} - ${item.price} points`) // Include price in the label
+          .setLabel(`${item.label} - ${item.price} points`) 
           .setDescription(item.description)
           .setValue(item.value)
       ));
@@ -68,7 +68,43 @@ client.on('messageCreate', async (message) => {
       components: [actionRow],
     });
   }
-  
+  if (message.content.startsWith("!gamble")) {
+    const args = message.content.split(' ');
+    const gamblePoints = parseInt(args[1]);
+
+    if (isNaN(gamblePoints) || gamblePoints <= 0) {
+      message.reply("Please enter a valid number of points to gamble.");
+      return;
+    }
+
+    const username = message.author.username;
+    const userPoints = leaderboard[username] || 0;
+
+    if (userPoints < gamblePoints) {
+      message.reply(`You don't have enough points to gamble. You currently have ${userPoints} points.`);
+      return;
+    }
+
+    // Decide if the user wins or loses (50/50 chance)
+    const isWin = Math.random() < 0.5;
+
+    if (isWin) {
+      leaderboard[username] += gamblePoints;
+      message.reply(`🎉 You won! You now have ${leaderboard[username]} points.`);
+    } else {
+      leaderboard[username] -= gamblePoints;
+      message.reply(`😢 You lost! You now have ${leaderboard[username]} points.`);
+    }
+
+    saveLeaderboard();
+  }
+
+ if (message.content === "!points") {
+  const username = message.author.username;
+  const points = leaderboard[username] || 0; // Default to 0 if undefined
+  message.reply(`${username}, you have ${points} points.`);
+}
+
   if (message.content === "!leaderboard") {
     // Generate and display leaderboard
     const sortedLeaderboard = Object.entries(leaderboard)
@@ -154,10 +190,10 @@ client.on('interactionCreate', async (interaction) => {
         const guild = interaction.guild;
         const member = guild.members.cache.get(interaction.user.id);
         const role = guild.roles.cache.get(selectedItem.roleId);
-
+        await interaction.reply(`✅ You have purchased **${selectedItem.label}** for ${selectedItem.price} points. You have been assigned the role **${role.name}**. Your new balance is ${leaderboard[username]} points.`);
         if (role && member) {
           await member.roles.add(role); // Assign the role to the user
-          await interaction.reply(`✅ You have purchased **${selectedItem.label}** for ${selectedItem.price} points. You have been assigned the role **${role.name}**. Your new balance is ${leaderboard[username]} points.`);
+         
         } else {
           await interaction.reply("❌ There was an error assigning the role. Please contact an administrator.");
         }
