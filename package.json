@@ -10,6 +10,8 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@google-cloud/vertexai": "^1.7.0",
+    "@google/generative-ai": "^0.17.1",
     "discord.js": "^14.15.3",
     "dotenv": "^16.4.5",
     "nodemon": "^3.1.4"

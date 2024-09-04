@@ -4,6 +4,7 @@ import { config } from 'dotenv';
 import { Client, IntentsBitField } from 'discord.js';
 import fs from 'fs';
 import { StringSelectMenuBuilder, StringSelectMenuOptionBuilder, ActionRowBuilder } from "discord.js";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
 config(); // Load environment variables
 
@@ -15,6 +16,9 @@ const client = new Client({
     IntentsBitField.Flags.MessageContent,
   ],
 });
+
+const genAI = new GoogleGenerativeAI(process.env.GOOGLE_AI_KEY);
+const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
 let f = 20;
 let messageCount = 10;
@@ -31,9 +35,27 @@ if (fs.existsSync(leaderboardFile)) {
   leaderboard = JSON.parse(fs.readFileSync(leaderboardFile, 'utf-8'));
 }
 
-function getRandomQuiz() {
-  const randomIndex = Math.floor(Math.random() * quizQuestions.length);
-  return quizQuestions[randomIndex];
+async function getRandomQuiz() {
+  const prompt = `write a python question in format and dont write anyt on top:-
+{
+  question: "",
+  options: [
+    "1. ",
+    "2. ",
+    "3. ",
+    "4. "
+  ],
+  answer: ""
+}`;
+
+  const result = await model.generateContent(prompt);
+  const quiz = JSON.parse(result.response.text());
+
+  return {
+    question: quiz.question,
+    options: quiz.options,
+    answer: parseInt(quiz.answer), // Ensure the answer is an integer
+  };
 }
 
 function saveLeaderboard() {
@@ -47,7 +69,6 @@ client.on('ready', () => {
 client.on('messageCreate', async (message) => {
   if (message.author.bot) return;
 
- 
   if (message.content === "!shop") {
     const selectMenu = new StringSelectMenuBuilder()
       .setCustomId('select-item')
@@ -68,12 +89,43 @@ client.on('messageCreate', async (message) => {
       components: [actionRow],
     });
   }
-  
- if (message.content === "!points") {
-  const username = message.author.username;
-  const points = leaderboard[username] || 0; // Default to 0 if undefined
-  message.reply(`${username}, you have ${points} points.`);
-}
+
+  if (message.content.startsWith("!gamble")) {
+    const args = message.content.split(' ');
+    const gamblePoints = parseInt(args[1]);
+
+    if (isNaN(gamblePoints) || gamblePoints <= 0) {
+      message.reply("Please enter a valid number of points to gamble.");
+      return;
+    }
+
+    const username = message.author.username;
+    const userPoints = leaderboard[username] || 0;
+
+    if (userPoints < gamblePoints) {
+      message.reply(`You don't have enough points to gamble. You currently have ${userPoints} points.`);
+      return;
+    }
+
+    // Decide if the user wins or loses (10/90 chance)
+    const isWin = Math.random() < 0.10;
+
+    if (isWin) {
+      leaderboard[username] += gamblePoints;
+      message.reply(`🎉 You won! You now have ${leaderboard[username]} points.`);
+    } else {
+      leaderboard[username] -= gamblePoints;
+      message.reply(`😢 You lost! You now have ${leaderboard[username]} points.`);
+    }
+
+    saveLeaderboard();
+  }
+
+  if (message.content === "!points") {
+    const username = message.author.username;
+    const points = leaderboard[username] || 0; // Default to 0 if undefined
+    message.reply(`${username}, you have ${points} points.`);
+  }
 
   if (message.content === "!leaderboard") {
     // Generate and display leaderboard
@@ -102,7 +154,7 @@ client.on('messageCreate', async (message) => {
       }
 
       isQuizActive = true;
-      const quiz = getRandomQuiz();
+      const quiz = await getRandomQuiz();
       message.channel.send(`Quiz Time! 🎉\n${quiz.question}\n${quiz.options.join("\n")}\nType the number of the correct answer.`);
     
       const filter = (response) => {
