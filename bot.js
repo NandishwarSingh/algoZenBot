@@ -68,37 +68,7 @@ client.on('messageCreate', async (message) => {
       components: [actionRow],
     });
   }
-  if (message.content.startsWith("!gamble")) {
-    const args = message.content.split(' ');
-    const gamblePoints = parseInt(args[1]);
-
-    if (isNaN(gamblePoints) || gamblePoints <= 0) {
-      message.reply("Please enter a valid number of points to gamble.");
-      return;
-    }
-
-    const username = message.author.username;
-    const userPoints = leaderboard[username] || 0;
-
-    if (userPoints < gamblePoints) {
-      message.reply(`You don't have enough points to gamble. You currently have ${userPoints} points.`);
-      return;
-    }
-
-    // Decide if the user wins or loses (50/50 chance)
-    const isWin = Math.random() < 0.5;
-
-    if (isWin) {
-      leaderboard[username] += gamblePoints;
-      message.reply(`🎉 You won! You now have ${leaderboard[username]} points.`);
-    } else {
-      leaderboard[username] -= gamblePoints;
-      message.reply(`😢 You lost! You now have ${leaderboard[username]} points.`);
-    }
-
-    saveLeaderboard();
-  }
-
+  
  if (message.content === "!points") {
   const username = message.author.username;
   const points = leaderboard[username] || 0; // Default to 0 if undefined
