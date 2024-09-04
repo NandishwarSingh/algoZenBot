@@ -17,11 +17,11 @@ const client = new Client({
   ],
 });
 
-const genAI = new GoogleGenerativeAI(process.env.GOOGLE_AI_KEY);
+const genAI = new GoogleGenerativeAI("");
 const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
-let f = 20;
-let messageCount = 10;
+let f = 20; 
+let messageCount = 19;
 let isQuizActive = false;
 
 // Define the specific channel ID for the quiz
@@ -36,27 +36,39 @@ if (fs.existsSync(leaderboardFile)) {
 }
 
 async function getRandomQuiz() {
-  const prompt = `write a python question in format and dont write anyt on top:-
-{
-  question: "",
-  options: [
-    "1. ",
-    "2. ",
-    "3. ",
-    "4. "
-  ],
-  answer: ""
-}`;
+  const prompt = ` generate random python question
+  {
+    "question": "",
+    "options": [
+      "1. ",
+      "2. ",
+      "3. ",
+      "4. "
+    ],
+    "answer": ""
+  }`;
 
-  const result = await model.generateContent(prompt);
-  const quiz = JSON.parse(result.response.text());
+  try {
+    const result = await model.generateContent(prompt);
+    
+    // Extract the JSON part from the response
+    const jsonStart = result.response.text().indexOf('{');
+    const jsonEnd = result.response.text().lastIndexOf('}') + 1;
+    const jsonResponse = result.response.text().slice(jsonStart, jsonEnd);
 
-  return {
-    question: quiz.question,
-    options: quiz.options,
-    answer: parseInt(quiz.answer), // Ensure the answer is an integer
-  };
+    const quiz = JSON.parse(jsonResponse);
+
+    return {
+      question: quiz.question,
+      options: quiz.options,
+      answer: parseInt(quiz.answer), // Ensure the answer is an integer
+    };
+  } catch (error) {
+    console.error("Failed to generate quiz:", error);
+    return null; // Handle the error appropriately in your bot
+  }
 }
+
 
 function saveLeaderboard() {
   fs.writeFileSync(leaderboardFile, JSON.stringify(leaderboard, null, 2), 'utf-8');
