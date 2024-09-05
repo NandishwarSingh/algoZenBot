@@ -2,10 +2,19 @@ AlgoZenBot is a fun and interactive bot designed for engaging users in a quiz ga
 
 Users can view the leaderboard by typing  !leaderboard  in the designated quiz channel.
 
-Updates:- 1. Shop has been added and now users can purchase a special role with points they have collected by answering the quiz
+Updates:- 
+
+1. Shop has been added and now users can purchase a special role with points they have collected by answering the quiz
+
 2. !points added and now users can check out their points without calling leaderboard
+
 3. !gamble add and now users can gamble to lose the gambled amount or double the gambled amount
+
 4. Questions are now Dynnamically generated with gemini API instead of Being Hardcoded
+
+5. Better Question Quality Imporvements
+
+6. !question has been added and now users can ask their doubts and quetions using !question <your question>
 
 Note :-
 
