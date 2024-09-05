@@ -1,4 +1,3 @@
-
 import items from "./shopItems.js";
 import { config } from 'dotenv';
 import { Client, IntentsBitField } from 'discord.js';
@@ -21,7 +20,7 @@ const genAI = new GoogleGenerativeAI("");
 const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
 let f = 20; 
-let messageCount = 15;
+let messageCount = 19;
 let isQuizActive = false;
 
 // Define the specific channel ID for the quiz
@@ -36,9 +35,116 @@ if (fs.existsSync(leaderboardFile)) {
 }
 
 async function getRandomQuiz() {
-  const prompt = ` Generate a random basic Python question aimed at testing fundamental knowledge of the language.
+  let questions = [
+   "What is the difference between a list and a tuple in Python?",
+    "How do you create a virtual environment in Python?",
+    "What does the 'pass' statement do in Python?",
+    "What is the difference between 'is' and '==' in Python?",
+    "How do you define a function in Python?",
+    "What is a lambda function in Python?",
+    "Explain how the Python 'with' statement works.",
+    "What are Python decorators?",
+    "How do you handle exceptions in Python?",
+    "What is the purpose of 'self' in a Python class?",
+    "What is list comprehension in Python?",
+    "What is the purpose of the 'global' keyword in Python?",
+    "How do you convert a string to a number in Python?",
+    "What are Python generators?",
+    "How do you install an external package in Python?",
+    "What is the purpose of the 'break' statement in loops?",
+    "What does the 'continue' statement do in Python?",
+    "What are Python modules and how do you import them?",
+    "Explain the difference between shallow copy and deep copy in Python.",
+    "How can you iterate over a dictionary in Python?",
+    "What is the difference between 'append()' and 'extend()' in a list?",
+    "What are the key differences between Python 2 and Python 3?",
+    "How do you reverse a list in Python?",
+    "What is a dictionary in Python and how do you create one?",
+    "How do you remove a key-value pair from a dictionary?",
+    "What is the purpose of the 'len()' function in Python?",
+    "What is slicing in Python, and how does it work?",
+    "How do you check the type of a variable in Python?",
+    "What is the difference between a 'set' and a 'frozenset' in Python?",
+    "How do you create a class in Python?",
+    "What are class methods and static methods in Python?",
+    "How do you concatenate two strings in Python?",
+    "What is the use of the 'dir()' function?",
+    "Explain how to sort a list in Python.",
+    "What does the 'zip()' function do in Python?",
+    "What are the differences between 'remove()', 'pop()', and 'del' for lists?",
+    "How do you open and read a file in Python?",
+    "How do you write data to a file in Python?",
+    "What is the difference between 'read()' and 'readlines()' in file handling?",
+    "How do you merge two dictionaries in Python?",
+    "What is the purpose of 'None' in Python?",
+    "What is the difference between 'return' and 'print' in Python?",
+    "How do you implement inheritance in Python?",
+    "What is a Python 'set' and how is it different from a list?",
+    "How do you check if a key exists in a dictionary?",
+    "What is the purpose of the '__init__' method in Python classes?",
+    "How do you create and use a package in Python?",
+    "What is the purpose of the 'enumerate()' function?",
+    "How do you implement a while loop in Python?",
+    "What is a Python docstring and how do you use it?",
+    "What is a pointer in C, and how do you declare one?",
+    "How do you dynamically allocate memory in C?",
+    "What is the difference between 'malloc' and 'calloc'?",
+    "What does the 'sizeof' operator do in C?",
+    "How do you create and use a structure in C?",
+    "What is a union in C, and how does it differ from a structure?",
+    "What is a function pointer in C?",
+    "What is the purpose of the 'return' statement in a function?",
+    "Explain how a 'for' loop works in C.",
+    "What is the difference between 'break' and 'continue' in C?",
+    "What is the purpose of the 'typedef' keyword?",
+    "How do you declare a constant in C?",
+    "What are the differences between '==', '=', and '===' in C?",
+    "What is the use of the 'static' keyword in C?",
+    "How do you handle file operations in C?",
+    "What is a preprocessor directive in C?",
+    "What are header files, and how do you include them in C?",
+    "How do you pass an array to a function in C?",
+    "What is the purpose of the 'main' function in C?",
+    "What is the difference between '++i' and 'i++' in C?",
+    "How do you define a function in C?",
+    "What are the differences between 'call by value' and 'call by reference' in C?",
+    "What is an infinite loop in C, and how can you create one?",
+    "What are the differences between a stack and a heap?",
+    "How do you swap two variables using pointers in C?",
+    "What is the 'void' keyword in C?",
+    "Explain the concept of 'recursion' in C.",
+    "What is the purpose of 'if', 'else if', and 'else' statements in C?",
+    "How do you declare a 2D array in C?",
+    "What is a null pointer in C, and how is it used?",
+    "What is the purpose of the 'extern' keyword in C?",
+    "What is the difference between 'struct' and 'typedef struct' in C?",
+    "How do you compare two strings in C?",
+    "What does the 'volatile' keyword mean in C?",
+    "What is the difference between 'printf' and 'scanf'?",
+    "How do you free dynamically allocated memory in C?",
+    "What is the purpose of 'fopen' and 'fclose' in C?",
+    "What is the purpose of the 'do-while' loop in C?",
+    "What is the scope of a variable in C?",
+    "How do you declare and initialize a pointer to an array in C?",
+    "What is the difference between 'int' and 'unsigned int' in C?",
+    "What are bitwise operators, and how are they used in C?",
+    "How do you declare and use an enum in C?",
+    "What is pointer arithmetic, and how does it work?",
+    "How do you pass a pointer to a function in C?",
+    "What is the purpose of the 'goto' statement, and why should it be avoided?",
+    "What is a segmentation fault, and how can you avoid it?",
+    "How do you define a macro in C?",
+    "What are storage classes in C, and what are the different types?",
+    "How do you implement conditional compilation in C?"
+  ];
+
+  // Get a random index for the question
+  let randomIndex = Math.floor(Math.random() * questions.length);
+
+  // Construct the question prompt
+  const prompt = `Question: ${questions[randomIndex]} \nGenerate 4 possible answers with one correct answer, and return in the following JSON format:
   {
-    "question": "",
+    "question": "${questions[randomIndex]}",
     "options": [
       "1. ",
       "2. ",
@@ -49,13 +155,18 @@ async function getRandomQuiz() {
   }`;
 
   try {
+    // Assuming model.generateContent is an AI API interaction
     const result = await model.generateContent(prompt);
-    console.log(result.response.text());
-    // Extract the JSON part from the response
-    const jsonStart = result.response.text().indexOf('{');
-    const jsonEnd = result.response.text().lastIndexOf('}') + 1;
-    const jsonResponse = result.response.text().slice(jsonStart, jsonEnd);
 
+    // Handle the response text (once)
+    const responseText = await result.response.text();
+
+    // Extract the JSON part from the response (assuming the response follows the format)
+    const jsonStart = responseText.indexOf('{');
+    const jsonEnd = responseText.lastIndexOf('}') + 1;
+    const jsonResponse = responseText.slice(jsonStart, jsonEnd);
+
+    // Parse the extracted JSON
     const quiz = JSON.parse(jsonResponse);
 
     return {
@@ -171,7 +282,7 @@ client.on('messageCreate', async (message) => {
 
       isQuizActive = true;
       const quiz = await getRandomQuiz();
-      message.channel.send(`Quiz Time! 🎉\n${quiz.question}\n${quiz.options.join("\n")}\nType the number of the correct answer.`);
+      message.channel.send(`Quiz Time! 🎉\n\n${quiz.question}\n\n${quiz.options.join("\n\n")}\n\nType the number of the correct answer.`);
     
       const filter = (response) => {
         return !response.author.bot && response.channel.id === quizChannelId;
