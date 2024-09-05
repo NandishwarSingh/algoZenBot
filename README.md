@@ -5,6 +5,7 @@ Users can view the leaderboard by typing  !leaderboard  in the designated quiz c
 Updates:- 1. Shop has been added and now users can purchase a special role with points they have collected by answering the quiz
 2. !points added and now users can check out their points without calling leaderboard
 3. !gamble add and now users can gamble to lose the gambled amount or double the gambled amount
+4. Questions are now Dynnamically generated with gemini API instead of Being Hardcoded
 
 Note :-
 
