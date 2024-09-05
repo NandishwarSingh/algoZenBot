@@ -21,12 +21,12 @@ const genAI = new GoogleGenerativeAI("");
 const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
 let f = 20; 
-let messageCount = 19;
+let messageCount = 15;
 let isQuizActive = false;
 
 // Define the specific channel ID for the quiz
 const quizChannelId = process.env.TOKEN2;
-
+const quizChannelId2 = process.env.TOKEN3;
 // Load leaderboard from JSON file
 let leaderboard = {};
 const leaderboardFile = 'leaderboard.json';
@@ -79,6 +79,9 @@ client.on('ready', () => {
 });
 
 client.on('messageCreate', async (message) => {
+  if (message.channel.id !== quizChannelId) {
+    return; // Ignore commands from other channels
+  }
   if (message.author.bot) return;
 
   if (message.content === "!shop") {
@@ -138,19 +141,7 @@ client.on('messageCreate', async (message) => {
     const points = leaderboard[username] || 0; // Default to 0 if undefined
     message.reply(`${username}, you have ${points} points.`);
   }
-
-  if (message.content.includes("!question")){
-    const prompt = message.content ;
-
-  try {
-    const result = await model.generateContent(prompt);
-    console.log(result.response.text());
-    message.reply(result.response.text())
-  }
-  catch (error) {
-    console.error("Failed to generate quiz:", error);
-    return null; // Handle the error appropriately in your bot
-  }}
+  
 
   if (message.content === "!leaderboard") {
     // Generate and display leaderboard
@@ -213,6 +204,20 @@ client.on('messageCreate', async (message) => {
       });
     }
   }
+  
+  if (message.content.includes("!question")){
+    
+    const prompt = message.content ;
+
+  try {
+    const result = await model.generateContent(prompt);
+    console.log(result.response.text());
+    message.reply(result.response.text())
+  }
+  catch (error) {
+    console.error("Failed to generate quiz:", error);
+    return null; // Handle the error appropriately in your bot
+  }}
 });
 
 client.on('interactionCreate', async (interaction) => {
