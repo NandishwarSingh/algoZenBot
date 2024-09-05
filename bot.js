@@ -36,7 +36,7 @@ if (fs.existsSync(leaderboardFile)) {
 }
 
 async function getRandomQuiz() {
-  const prompt = ` generate random python question
+  const prompt = ` Generate a random basic Python question aimed at testing fundamental knowledge of the language.
   {
     "question": "",
     "options": [
@@ -50,7 +50,7 @@ async function getRandomQuiz() {
 
   try {
     const result = await model.generateContent(prompt);
-    
+    console.log(result.response.text());
     // Extract the JSON part from the response
     const jsonStart = result.response.text().indexOf('{');
     const jsonEnd = result.response.text().lastIndexOf('}') + 1;
@@ -138,6 +138,19 @@ client.on('messageCreate', async (message) => {
     const points = leaderboard[username] || 0; // Default to 0 if undefined
     message.reply(`${username}, you have ${points} points.`);
   }
+
+  if (message.content.includes("!question")){
+    const prompt = message.content ;
+
+  try {
+    const result = await model.generateContent(prompt);
+    console.log(result.response.text());
+    message.reply(result.response.text())
+  }
+  catch (error) {
+    console.error("Failed to generate quiz:", error);
+    return null; // Handle the error appropriately in your bot
+  }}
 
   if (message.content === "!leaderboard") {
     // Generate and display leaderboard
