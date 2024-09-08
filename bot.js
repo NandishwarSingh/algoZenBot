@@ -17,15 +17,15 @@ const client = new Client({
 });
 
 const genAI = new GoogleGenerativeAI("");
-const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro" });
 
-let f = 20; 
-let messageCount = 19;
+let f = 30; 
+let messageCount = 10;
 let isQuizActive = false;
 
 // Define the specific channel ID for the quiz
 const quizChannelId = process.env.TOKEN2;
-const quizChannelId2 = process.env.TOKEN3;
+
 // Load leaderboard from JSON file
 let leaderboard = {};
 const leaderboardFile = 'leaderboard.json';
@@ -291,34 +291,44 @@ client.on('messageCreate', async (message) => {
       const collector = message.channel.createMessageCollector({ filter, time: 30000 }); // 30 seconds to answer
 
       collector.on('collect', (response) => {
-        if (response.content === quiz.answer.toString()) {
-          // Update leaderboard with the correct answer
-          const username = response.author.username;
-          if (!leaderboard[username]) {
-            leaderboard[username] = 0;
+        const validResponses = ['1', '2', '3', '4'];
+      
+        // Only proceed if the response is 1, 2, 3, or 4
+        if (validResponses.includes(response.content)) {
+          if (response.content === quiz.answer.toString()) {
+            // Update leaderboard with the correct answer
+            const username = response.author.username;
+            if (!leaderboard[username]) {
+              leaderboard[username] = 0;
+            }
+            leaderboard[username] += 1; // Increment points
+            saveLeaderboard(); // Save the updated leaderboard
+      
+            message.channel.send(`🎉 Correct! The answer is ${quiz.options[quiz.answer - 1]}. Congratulations ${username}!`);
+            collector.stop();
+          } else {
+            const username = response.author.username;
+            leaderboard[username] -= 1; // Decrement points
+            saveLeaderboard(); // Save the updated leaderboard
+      
+            message.channel.send("❌ Incorrect. Try again!");
           }
-          leaderboard[username] += 1; // Increment points
-          saveLeaderboard(); // Save the updated leaderboard
-
-          message.channel.send(`🎉 Correct! The answer is ${quiz.options[quiz.answer - 1]}. Congratulations ${username}!`);
-          collector.stop();
-        } else {
-          message.channel.send("❌ Incorrect. Try again!");
         }
       });
-
+      
       collector.on('end', (collected) => {
         if (!collected.size) {
           message.channel.send("⏰ Time's up! The correct answer was " + quiz.options[quiz.answer - 1] + ".");
         }
         isQuizActive = false;
       });
+      
     }
   }
   
   if (message.content.includes("!question")){
     
-    const prompt = message.content ;
+    const prompt = "If the query is related to programming or anything related to it, answer it comprehensively. Otherwise, respond with a polite and informative message that keeps the conversation focused on discord server topics.\n\n**Prompt:** " + message.content + "in 700 Characters";
 
   try {
     const result = await model.generateContent(prompt);
@@ -338,37 +348,39 @@ client.on('interactionCreate', async (interaction) => {
     const selectedItemValue = interaction.values[0];
     const selectedItem = items.find(item => item.value === selectedItemValue);
     const username = interaction.user.username;
+    const userPoints = leaderboard[username] || 0; // Handle cases where the user isn't in the leaderboard
 
-    console.log(`Selected item: ${selectedItem.label}`);
-    console.log(`Item price: ${selectedItem.price}`);
-    console.log(`User: ${username}`);
-    console.log(`User points: ${leaderboard[username]}`);
-
-    if (leaderboard[username] && leaderboard[username] >= selectedItem.price) {
+    if (userPoints >= selectedItem.price) {
       leaderboard[username] -= selectedItem.price; // Deduct the item price from user's points
       saveLeaderboard(); // Save the updated leaderboard
 
-      // Assign the role if the item has an associated roleId
       if (selectedItem.roleId) {
         const guild = interaction.guild;
         const member = guild.members.cache.get(interaction.user.id);
         const role = guild.roles.cache.get(selectedItem.roleId);
-        await interaction.reply(`✅ You have purchased **${selectedItem.label}** for ${selectedItem.price} points. You have been assigned the role **${role.name}**. Your new balance is ${leaderboard[username]} points.`);
+       interaction.reply(`✅ You have purchased **${selectedItem.label}** for ${selectedItem.price} points. You have been assigned the role **${role.name}**. Your new balance is ${leaderboard[username]} points.`);
         if (role && member) {
-          await member.roles.add(role); // Assign the role to the user
-         
+          try {
+            await member.roles.add(role); // Assign the role to the user
+           
+          } catch (error) {
+            console.error(`Error assigning role: ${error}`);
+            await interaction.reply("❌ There was an error assigning the role. Please contact an administrator.");
+          }
         } else {
-          await interaction.reply("❌ There was an error assigning the role. Please contact an administrator.");
+          await interaction.reply("❌ There was an error finding the member or role. Please contact an administrator.");
         }
       } else {
-        await interaction.reply(`✅ You have purchased **${selectedItem.label}** for ${selectedItem.price} points. Your new balance is ${leaderboard[username]} points.`);
+        await interaction.reply(`✅ You have purchased **${selectedItem.label}** for ${selectedItem.price} points. Your new balance is ${leaderboard[username]} points. Contact @Geoguyz for redumption`);
       }
-      
     } else {
-      const userPoints = leaderboard[username] || 0;
-      await interaction.reply(`❌ You don't have enough points to purchase **${selectedItem.label}**. You need ${selectedItem.price - userPoints} more points.`);
+      const pointsNeeded = selectedItem.price - userPoints;
+      await interaction.reply(`❌ You don't have enough points to purchase **${selectedItem.label}**. You need ${pointsNeeded} more points.`);
     }
   }
 });
+
+
+
 
 client.login(process.env.TOKEN);
